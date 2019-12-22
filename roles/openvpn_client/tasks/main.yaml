@@ -1,0 +1,56 @@
+---
+
+    - name: Run yum update
+      yum:
+        name: '*'
+        state: latest
+
+    - name: Install EPEL-Release
+      yum:
+        name: epel-release
+        state: latest
+
+    - name: Install OpenVPN
+      yum:
+        name: openvpn
+        state: latest
+      register: openvpn_install
+
+    - name: Install easy-rsa
+      yum:
+        name: easy-rsa
+        state: latest
+
+    - name: Install RSync
+      yum:
+        name: rsync
+        state: latest
+
+    - name: Transfer client.conf from OpenVPN server
+      synchronize:
+        src: /etc/openvpn/client.conf
+        dest: /etc/openvpn/client.conf
+      delegate_to: localhost
+      when: openvpn_install is changed
+
+    - firewalld:
+        port: 1194/udp
+        permanent: yes
+        state: enabled
+
+    - firewalld:
+        source: 10.8.0.0/24
+        permanent: yes
+        state: enabled
+        
+    - name: Reload Firewalld service
+      service:
+        name: firewalld
+        state: reloaded
+        enabled: yes
+
+    - name: Start OpenVPN service
+      service:
+        name: openvpn@client
+        state: started
+        enabled: yes
